@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { YoutubeTranscript } from 'youtube-transcript';
+import YoutubeTranscript from 'youtube-transcript';
 import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
 
