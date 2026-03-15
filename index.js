@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import YoutubeTranscript from 'youtube-transcript';
+import * as YoutubeTranscriptModule from 'youtube-transcript'; // Star import use kiya hai
 import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
 
@@ -9,6 +9,9 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Library handle karne ka naya tareeka
+const YoutubeTranscript = YoutubeTranscriptModule.default || YoutubeTranscriptModule.YoutubeTranscript || YoutubeTranscriptModule;
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -19,21 +22,18 @@ app.post('/api/analyze', async (req, res) => {
     try {
         console.log("Fetching transcript for:", url);
         
-        // Transcript nikalna (Direct Library se)
-        const transcriptArr = await YoutubeTranscript.fetchTranscript(url);
+        // Transcript nikalne ka robust tareeka
+        const fetcher = YoutubeTranscript.fetchTranscript || YoutubeTranscript.default?.fetchTranscript;
+        if (!fetcher) throw new Error("Transcript fetcher not found in library");
+
+        const transcriptArr = await fetcher(url);
         const transcriptText = transcriptArr.map(t => t.text).join(' ');
 
-        // AI Analysis
         const chatCompletion = await groq.chat.completions.create({
             messages: [
                 {
                     role: "system",
-                    content: `You are TapLogic X. Provide a JSON response with:
-                    1. title: Video title.
-                    2. shortSummary: 2-3 sentence overview.
-                    3. detailedExplanation: Point-wise detailed summary.
-                    4. type: "recruitment" or "general".
-                    5. recruitmentDetails: { recruitmentName, ageLimit, qualification, totalVacancies, scSeats, fees, scFees, dutyPlace } (Fill ONLY if it's a job video, else null).`
+                    content: `You are TapLogic X. Provide a JSON response with title, shortSummary, detailedExplanation, and type.`
                 },
                 {
                     role: "user",
@@ -44,15 +44,11 @@ app.post('/api/analyze', async (req, res) => {
             response_format: { type: "json_object" }
         });
 
-        const result = JSON.parse(chatCompletion.choices[0].message.content);
-        res.json(result);
+        res.json(JSON.parse(chatCompletion.choices[0].message.content));
 
     } catch (error) {
         console.error("Engine Error:", error.message);
-        res.status(500).json({ 
-            error: "Analysis Failed", 
-            details: error.message 
-        });
+        res.status(500).json({ error: "Analysis Failed", details: error.message });
     }
 });
 
