@@ -1,8 +1,10 @@
-const express = require('express');
-const cors = require('cors');
-const { YoutubeTranscript } = require('youtube-transcript');
-const Groq = require('groq-sdk');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import { YoutubeTranscript } from 'youtube-transcript';
+import Groq from 'groq-sdk';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
@@ -17,11 +19,11 @@ app.post('/api/analyze', async (req, res) => {
     try {
         console.log("Fetching transcript for:", url);
         
-        // Step 1: Get Transcript without any API Key
+        // Transcript nikalna (Direct Library se)
         const transcriptArr = await YoutubeTranscript.fetchTranscript(url);
         const transcriptText = transcriptArr.map(t => t.text).join(' ');
 
-        // Step 2: Powerful AI Summary
+        // AI Analysis
         const chatCompletion = await groq.chat.completions.create({
             messages: [
                 {
